@@ -14,5 +14,5 @@ result = client.query(
     "SELECT version()"
 )
 
-
+# if it establishes a connection it will print the version
 print(result.result_rows)
