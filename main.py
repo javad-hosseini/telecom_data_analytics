@@ -5,8 +5,9 @@ from tabulate import tabulate
 
 from database.clickhouse_client import ClickHouseClient
 from repositories.network_event_repository import NetworkEventRepository
-from analytics.network_event_analytics import NetworkEventAnalytics
 from config import *
+from analytics.network_event_analytics import NetworkEventAnalytics
+
 
 
 class ClickHouseCLI(cmd.Cmd):
@@ -14,11 +15,11 @@ class ClickHouseCLI(cmd.Cmd):
 
     intro = """
     ╔══════════════════════════════════════════════════════════════╗
-    ║     📊 CLICKHOUSE TELECOM ANALYTICS - CLI                   ║
-    ║                                                             ║
-    ║  Type 'help' for list of commands                          ║
-    ║  Type 'help <command>' for command details                 ║
-    ║  Type 'exit' or 'quit' to exit                            ║
+    ║       CLICKHOUSE TELECOM ANALYTICS - CLI                     ║
+    ║                                                              ║
+    ║  Type 'help' for list of commands                            ║
+    ║  Type 'help <command>' for command details                   ║
+    ║  Type 'exit' or 'quit' to exit                               ║
     ╚══════════════════════════════════════════════════════════════╝
     """
     prompt = "telecom> "
@@ -28,7 +29,13 @@ class ClickHouseCLI(cmd.Cmd):
 
         # Initialize connections
         print("⏳ Connecting to ClickHouse...")
-        self.db = ClickHouseClient()
+        self.db = ClickHouseClient(
+            host=CLICKHOUSE_HOST,
+            port=CLICKHOUSE_PORT,
+            database=CLICKHOUSE_DATABASE,
+            username=CLICKHOUSE_USERNAME,
+            password=CLICKHOUSE_PASSWORD,
+        )
         self.repo = NetworkEventRepository(self.db.client)
         self.analytics = NetworkEventAnalytics(self.db.client)
 

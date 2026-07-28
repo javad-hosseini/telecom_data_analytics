@@ -752,3 +752,22 @@ class NetworkEventRepository:
             "min_date": row[0],
             "max_date": row[1]
         }
+
+    def get_latest(self, limit: int = 10) -> List[List[Any]]:
+        """
+        Get latest events
+
+        Args:
+            limit: Number of events to return
+
+        Returns:
+            List of rows
+        """
+        query = """
+            SELECT *
+            FROM {table}
+            ORDER BY event_time DESC
+            LIMIT {limit}
+        """.format(table=self.table_name, limit=limit)
+
+        return self.client.query(query).result_rows
