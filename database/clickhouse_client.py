@@ -21,3 +21,8 @@ class ClickHouseClient:
     @property
     def client(self):
         return self._client
+
+    def close(self):
+        """Close the ClickHouse connection"""
+        if self._client:
+            self._client.close()

@@ -1,16 +1,12 @@
 import sys
-import cmd
-from datetime import datetime, timedelta
-from tabulate import tabulate
-
+from cmd import Cmd
+from analytics.network_event_analytics import NetworkEventAnalytics
+from config import *
 from database.clickhouse_client import ClickHouseClient
 from repositories.network_event_repository import NetworkEventRepository
-from config import *
-from analytics.network_event_analytics import NetworkEventAnalytics
 
 
-
-class ClickHouseCLI(cmd.Cmd):
+class ClickHouseCLI(Cmd):
     """Interactive CLI for ClickHouse Telecom Analytics"""
 
     intro = """
@@ -43,21 +39,21 @@ class ClickHouseCLI(cmd.Cmd):
         try:
             total = self.repo.count()
             print(f"✅ Connected successfully! Total events: {total:,}")
-        except Exception as e:
-            print(f"❌ Connection failed: {e}")
+        except Exception as err:
+            print(f"❌ Connection failed: {err}")
             sys.exit(1)
 
     # ============================================
     # BASIC COMMANDS
     # ============================================
 
-    def do_count(self, arg):
+    def do_count(self, _arg):
         """Show total number of events"""
         try:
             total = self.repo.count()
             print(f"📊 Total events: {total:,}")
-        except Exception as e:
-            print(f"❌ Error: {e}")
+        except Exception as err:
+            print(f"❌ Error: {err}")
 
     def do_sample(self, arg):
         """Show sample events. Usage: sample [number]"""
@@ -87,8 +83,8 @@ class ClickHouseCLI(cmd.Cmd):
 
             print(tabulate(table, headers=headers, tablefmt="grid"))
 
-        except Exception as e:
-            print(f"❌ Error: {e}")
+        except Exception as err:
+            print(f"❌ Error: {err}")
 
     def do_user(self, arg):
         """Show events for a specific user. Usage: user <user_id>"""
@@ -129,8 +125,8 @@ class ClickHouseCLI(cmd.Cmd):
 
         except ValueError:
             print("❌ Invalid user_id. Please provide a number.")
-        except Exception as e:
-            print(f"❌ Error: {e}")
+        except Exception as err:
+            print(f"❌ Error: {err}")
 
     def do_latest(self, arg):
         """Show latest events. Usage: latest [number]"""
@@ -157,8 +153,8 @@ class ClickHouseCLI(cmd.Cmd):
 
             print(tabulate(table, headers=headers, tablefmt="grid"))
 
-        except Exception as e:
-            print(f"❌ Error: {e}")
+        except Exception as err:
+            print(f"❌ Error: {err}")
 
     def do_info(self, arg):
         """Show table information"""
@@ -186,8 +182,8 @@ class ClickHouseCLI(cmd.Cmd):
             apps = self.repo.get_distinct_values('app_name')
             print(f"   Apps: {', '.join(apps[:5])}{'...' if len(apps) > 5 else ''}")
 
-        except Exception as e:
-            print(f"❌ Error: {e}")
+        except Exception as err:
+            print(f"❌ Error: {err}")
 
     # ============================================
     # ANALYTICS COMMANDS
@@ -211,8 +207,8 @@ class ClickHouseCLI(cmd.Cmd):
             print(f"\n📱 Top {limit} Applications:")
             print(tabulate(table, headers=headers, tablefmt="grid"))
 
-        except Exception as e:
-            print(f"❌ Error: {e}")
+        except Exception as err:
+            print(f"❌ Error: {err}")
 
     def do_top_cities(self, arg):
         """Show top cities by traffic. Usage: top_cities [limit]"""
@@ -232,8 +228,8 @@ class ClickHouseCLI(cmd.Cmd):
             print(f"\n🏙️  Top {limit} Cities:")
             print(tabulate(table, headers=headers, tablefmt="grid"))
 
-        except Exception as e:
-            print(f"❌ Error: {e}")
+        except Exception as err:
+            print(f"❌ Error: {err}")
 
     def do_network_quality(self, arg):
         """Show network quality report by network type"""
@@ -252,8 +248,8 @@ class ClickHouseCLI(cmd.Cmd):
             print("\n📶 Network Quality Report:")
             print(tabulate(table, headers=headers, tablefmt="grid"))
 
-        except Exception as e:
-            print(f"❌ Error: {e}")
+        except Exception as err:
+            print(f"❌ Error: {err}")
 
     def do_daily_report(self, arg):
         """Show daily events report. Usage: daily_report [days]"""
@@ -273,8 +269,8 @@ class ClickHouseCLI(cmd.Cmd):
             print(f"\n📅 Daily Report (Last {days} days):")
             print(tabulate(table, headers=headers, tablefmt="grid"))
 
-        except Exception as e:
-            print(f"❌ Error: {e}")
+        except Exception as err:
+            print(f"❌ Error: {err}")
 
     def do_hourly_heatmap(self, arg):
         """Show hourly event distribution"""
@@ -292,8 +288,8 @@ class ClickHouseCLI(cmd.Cmd):
                 bar = "█" * min(int(count / max(1, max([r[1] for r in results])) * 50), 50)
                 print(f"{hour:4} | {count:5} | {bar}")
 
-        except Exception as e:
-            print(f"❌ Error: {e}")
+        except Exception as err:
+            print(f"❌ Error: {err}")
 
     def do_device_stats(self, arg):
         """Show device statistics"""
@@ -312,8 +308,8 @@ class ClickHouseCLI(cmd.Cmd):
             print("\n📱 Device Statistics:")
             print(tabulate(table, headers=headers, tablefmt="grid"))
 
-        except Exception as e:
-            print(f"❌ Error: {e}")
+        except Exception as err:
+            print(f"❌ Error: {err}")
 
     # ============================================
     # CUSTOM QUERY
@@ -335,13 +331,13 @@ class ClickHouseCLI(cmd.Cmd):
             else:
                 print("✅ Query executed successfully (no results)")
 
-        except Exception as e:
-            print(f"❌ Query error: {e}")
+        except Exception as err:
+            print(f"❌ Query error: {err}")
 
     # ============================================
     # SYSTEM COMMANDS
     # ============================================
-
+    @staticmethod
     def do_clear(self, arg):
         """Clear the screen"""
         import os
@@ -360,7 +356,6 @@ class ClickHouseCLI(cmd.Cmd):
     # ============================================
     # HELP
     # ============================================
-
     def help_commands(self):
         """List all available commands"""
         commands = [
@@ -401,18 +396,17 @@ class ClickHouseCLI(cmd.Cmd):
 
 if __name__ == "__main__":
     try:
-        # Check if tabulate is installed
-        try:
-            from tabulate import tabulate
-        except ImportError:
-            print("⚠️  'tabulate' not installed. Installing...")
-            import subprocess
-
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "tabulate"])
-            print("✅ tabulate installed. Please restart the CLI.")
-            sys.exit(1)
+        from tabulate import tabulate
 
         ClickHouseCLI().cmdloop()
+    except ImportError:
+        print("⚠️  'tabulate' not installed. Installing...")
+        import subprocess
+
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "tabulate"])
+        print("✅ tabulate installed. Please restart the CLI.")
+        sys.exit(1)
+
 
     except KeyboardInterrupt:
         print("\n👋 Goodbye!")
