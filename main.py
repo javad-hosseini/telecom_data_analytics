@@ -4,6 +4,8 @@ from analytics.network_event_analytics import NetworkEventAnalytics
 from config import *
 from database.clickhouse_client import ClickHouseClient
 from repositories.network_event_repository import NetworkEventRepository
+from partition_manager.partition_manager import PartitionManager
+
 
 
 class ClickHouseCLI(Cmd):
@@ -34,6 +36,7 @@ class ClickHouseCLI(Cmd):
         )
         self.repo = NetworkEventRepository(self.db.client)
         self.analytics = NetworkEventAnalytics(self.db.client)
+        self.partition = PartitionManager(self.db.client)
 
         # Check connection
         try:
@@ -184,6 +187,61 @@ class ClickHouseCLI(Cmd):
 
         except Exception as err:
             print(f"❌ Error: {err}")
+
+    # ============================================
+    # PARTITION COMMANDS
+    # ============================================
+
+    def do_partition_create(self, _arg):
+        """Create a partitioned table"""
+        self.partition.create_partitioned_table()
+
+    def do_partition_migrate(self, _arg):
+        """Migrate data to partitioned table"""
+        self.partition.migrate_to_partitioned()
+
+    def do_partition_replace(self, _arg):
+        """Replace original with partitioned table"""
+        self.partition.replace_with_partitioned()
+
+    def do_partition_show(self, _arg):
+        """Show partition information"""
+        self.partition.show_partitions()
+
+    def do_partition_drop(self, arg):
+        """Drop a specific partition. Usage: partition_drop 202401"""
+        if not arg:
+            print("⚠️  Please provide partition value. Usage: partition_drop 202401")
+            return
+        self.partition.drop_partition(arg)
+
+    def do_partition_clean(self, arg):
+        """Drop partitions older than N months. Usage: partition_clean 6"""
+        try:
+            months = int(arg) if arg else 6
+            self.partition.drop_partitions_older_than(months)
+        except ValueError:
+            print("❌ Please provide a valid number. Usage: partition_clean 6")
+
+    def do_partition_status(self, _arg):
+        """Show table status"""
+        status = self.partition.get_table_status()
+        print("\n📊 Table Status:")
+        print("-" * 50)
+
+        if status["original"]:
+            print("Original Table:")
+            print(f"  Name: {status['original']['name']}")
+            print(f"  Engine: {status['original']['engine']}")
+            print(f"  Rows: {status['original']['rows']:,}")
+            print(f"  Size: {status['original']['size']}")
+
+        if status["partitioned_exists"]:
+            print("\nPartitioned Table:")
+            print(f"  Name: {status['partitioned']['name']}")
+            print(f"  Engine: {status['partitioned']['engine']}")
+            print(f"  Rows: {status['partitioned']['rows']:,}")
+            print(f"  Size: {status['partitioned']['size']}")
 
     # ============================================
     # ANALYTICS COMMANDS
@@ -356,20 +414,36 @@ class ClickHouseCLI(Cmd):
     # ============================================
     # HELP
     # ============================================
+
     def help_commands(self):
         """List all available commands"""
         commands = [
+            # ===== BASIC COMMANDS =====
             ("count", "Show total number of events"),
             ("sample [n]", "Show n sample events (default: 5)"),
             ("user <id>", "Show events and stats for a user"),
             ("latest [n]", "Show n latest events (default: 10)"),
             ("info", "Show table information"),
+
+            # ===== ANALYTICS COMMANDS =====
             ("top_apps [n]", "Show top n applications (default: 10)"),
             ("top_cities [n]", "Show top n cities (default: 10)"),
             ("network_quality", "Show network quality report"),
             ("daily_report [n]", "Show daily report for last n days (default: 7)"),
             ("hourly_heatmap", "Show hourly event distribution"),
             ("device_stats", "Show device statistics"),
+
+            # ===== PARTITION COMMANDS =====
+            ("partition_status", "Show table and partition status"),
+            ("partition_create", "Create a partitioned table"),
+            ("partition_migrate", "Migrate data to partitioned table"),
+            ("partition_replace", "Replace original with partitioned table"),
+            ("partition_show", "Show partition information"),
+            ("partition_drop <YYYYMM>", "Drop a specific partition (e.g., 202401)"),
+            ("partition_clean <months>", "Drop partitions older than N months (default: 6)"),
+            ("partition_merge", "Optimize table by merging partitions"),
+
+            # ===== UTILITY COMMANDS =====
             ("query <SQL>", "Execute custom SQL query"),
             ("clear", "Clear the screen"),
             ("exit/quit", "Exit the CLI"),
@@ -377,9 +451,24 @@ class ClickHouseCLI(Cmd):
 
         print("\n📋 Available Commands:")
         print("-" * 60)
-        for cmd, desc in commands:
-            print(f"  {cmd:20} {desc}")
+        print("  BASIC COMMANDS:")
+        for cmd, desc in commands[:5]:
+            print(f"    {cmd:20} {desc}")
+
+        print("\n  ANALYTICS COMMANDS:")
+        for cmd, desc in commands[5:11]:
+            print(f"    {cmd:20} {desc}")
+
+        print("\n  PARTITION COMMANDS:")
+        for cmd, desc in commands[11:19]:
+            print(f"    {cmd:20} {desc}")
+
+        print("\n  UTILITY COMMANDS:")
+        for cmd, desc in commands[19:]:
+            print(f"    {cmd:20} {desc}")
+
         print("-" * 60)
+        print("💡 Type 'help <command>' for detailed usage")
 
     def do_help(self, arg):
         """Show help for commands"""
@@ -387,12 +476,11 @@ class ClickHouseCLI(Cmd):
             # Show help for specific command
             method = getattr(self, f"do_{arg}", None)
             if method and method.__doc__:
-                print(f"\n{method.__doc__}")
+                print(f"\n📖 {method.__doc__}")
             else:
                 print(f"⚠️  No help available for '{arg}'")
         else:
             self.help_commands()
-
 
 if __name__ == "__main__":
     try:
