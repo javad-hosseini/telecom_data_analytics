@@ -1,3 +1,6 @@
 documantations.md
 venv
 /how-to-use.md
+__pycache__
+.idea
+how-to-use.md
