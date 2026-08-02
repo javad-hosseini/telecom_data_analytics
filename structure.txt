@@ -1,0 +1,81 @@
+telecom_analytics/
+│
+├── 📁 api/                           # لایه ارائه (Presentation Layer)
+│   ├── __init__.py
+│   ├── dependencies.py               # وابستگی‌های تزریقی (Dependency Injection)
+│   ├── exceptions.py                 # مدیریت خطاهای سفارشی
+│   ├── middleware.py                 # میان‌افزارها (مثل logging، CORS)
+│   ├── models/                       # مدل‌های Pydantic
+│   │   ├── __init__.py
+│   │   ├── request_models.py         # مدل‌های ورودی
+│   │   └── response_models.py        # مدل‌های خروجی
+│   │
+│   └── routes/                       # مسیرهای API
+│       ├── __init__.py
+│       ├── events.py                 # /api/events/*
+│       ├── analytics.py              # /api/analytics/*
+│       ├── partitions.py             # /api/partitions/*
+│       └── health.py                 # /health برای بررسی وضعیت
+│
+├── 📁 core/                          # لایه هسته (Core/Domain)
+│   ├── __init__.py
+│   ├── config.py                     # تنظیمات اصلی (مهاجرت از config.py)
+│   ├── constants.py                  # ثابت‌های پروژه
+│   └── interfaces/                   # اینترفیس‌های انتزاعی
+│       ├── __init__.py
+│       ├── repositories.py           # اینترفیس ریپازیتوری‌ها
+│       └── services.py               # اینترفیس سرویس‌ها
+│
+├── 📁 services/                      # لایه سرویس (Business Logic)
+│   ├── __init__.py
+│   ├── event_service.py              # منطق مربوط به رویدادها
+│   ├── analytics_service.py          # منطق تحلیل‌ها
+│   ├── partition_service.py          # منطق مدیریت پارتیشن
+│   └── data_generator_service.py     # منطق تولید داده
+│
+├── 📁 repositories/                  # لایه دسترسی به داده
+│   ├── __init__.py
+│   ├── base_repository.py            # کلاس پایه با متدهای عمومی
+│   ├── network_event_repository.py   # ریپازیتوری رویدادها (تغییر یافته)
+│   └── partition_repository.py       # ریپازیتوری پارتیشن‌ها
+│
+├── 📁 database/                      # اتصال به دیتابیس
+│   ├── __init__.py
+│   ├── clickhouse_client.py          # مدیریت اتصال (تغییر یافته)
+│   └── migrations/                   # اسکریپت‌های مهاجرت
+│       └── init_tables.sql
+│
+├── 📁 utils/                         # ابزارهای کمکی
+│   ├── __init__.py
+│   ├── logger.py                     # تنظیمات لاگینگ
+│   └── validators.py                 # توابع اعتبارسنجی
+│
+├── 📁 scripts/                       # اسکریپت‌های مجزا
+│   ├── generate_data.py              # تولید داده (تغییر یافته)
+│   └── test_connection.py            # تست اتصال
+│
+├── 📁 tests/                         # تست‌ها
+│   ├── __init__.py
+│   ├── conftest.py                   # تنظیمات pytest
+│   ├── unit/                         # تست‌های واحد
+│   │   ├── test_services.py
+│   │   └── test_repositories.py
+│   └── integration/                  # تست‌های یکپارچه‌سازی
+│       └── test_api.py
+│
+├── 📁 docs/                          # مستندات
+│   ├── api_documentation.md
+│   └── architecture.md
+│
+├── 📁 .env/                          # فایل‌های محیطی
+│   ├── .env.example
+│   └── .env.local                    (در .gitignore قرار دهید)
+│
+├── main.py                           # ورودی CLI (حفظ می‌شود)
+├── app.py                            # ورودی جدید FastAPI
+├── requirements.txt                  # وابستگی‌ها (بروزرسانی می‌شود)
+├── docker-compose.yml                # برای اجرای کامل
+├── Dockerfile                        # برای ساخت ایمیج API
+├── .gitignore                        # (بروزرسانی می‌شود)
+├── pyproject.toml                    # برای مدیریت پروژه (اختیاری)
+└── README.md                         # (بروزرسانی می‌شود)

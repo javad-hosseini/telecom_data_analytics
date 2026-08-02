@@ -1,11 +1,11 @@
 import sys
 from cmd import Cmd
-from analytics.network_event_analytics import NetworkEventAnalytics
-from config import *
-from database.clickhouse_client import ClickHouseClient
-from repositories.network_event_repository import NetworkEventRepository
-from partition_manager.partition_manager import PartitionManager
 
+from analytics.network_event_analytics import NetworkEventAnalytics
+from core.config import get_settings
+from database.clickhouse_client import ClickHouseClient
+from partition_manager.partition_manager import PartitionManager
+from repositories.network_event_repository import NetworkEventRepository
 
 
 class ClickHouseCLI(Cmd):
@@ -25,18 +25,17 @@ class ClickHouseCLI(Cmd):
     def __init__(self):
         super().__init__()
 
-        # Initialize connections
+        # دریافت تنظیمات از config
+        self.settings = get_settings()
+
+        # Initialize connections - استفاده از Singleton
         print("⏳ Connecting to ClickHouse...")
-        self.db = ClickHouseClient(
-            host=CLICKHOUSE_HOST,
-            port=CLICKHOUSE_PORT,
-            database=CLICKHOUSE_DATABASE,
-            username=CLICKHOUSE_USERNAME,
-            password=CLICKHOUSE_PASSWORD,
-        )
-        self.repo = NetworkEventRepository(self.db.client)
-        self.analytics = NetworkEventAnalytics(self.db.client)
-        self.partition = PartitionManager(self.db.client)
+
+        self.db = ClickHouseClient.get_instance()
+
+        self.repo = NetworkEventRepository(self.db)
+        self.analytics = NetworkEventAnalytics(self.db)
+        self.partition = PartitionManager(self.db)
 
         # Check connection
         try:
@@ -159,7 +158,7 @@ class ClickHouseCLI(Cmd):
         except Exception as err:
             print(f"❌ Error: {err}")
 
-    def do_info(self, arg):
+    def do_info(self, _arg):
         """Show table information"""
         try:
             info = self.repo.get_table_info()
@@ -289,7 +288,7 @@ class ClickHouseCLI(Cmd):
         except Exception as err:
             print(f"❌ Error: {err}")
 
-    def do_network_quality(self, arg):
+    def do_network_quality(self, _arg):
         """Show network quality report by network type"""
         try:
             results = self.analytics.get_network_quality_report()
@@ -330,7 +329,7 @@ class ClickHouseCLI(Cmd):
         except Exception as err:
             print(f"❌ Error: {err}")
 
-    def do_hourly_heatmap(self, arg):
+    def do_hourly_heatmap(self, _arg):
         """Show hourly event distribution"""
         try:
             results = self.analytics.get_hourly_heatmap()
@@ -342,14 +341,15 @@ class ClickHouseCLI(Cmd):
             print("\n🕐 Hourly Event Distribution:")
             print("Hour | Count | Bar")
             print("-----|-------|----------------------------------------")
+            max_count = max([r[1] for r in results]) if results else 1
             for hour, count in results:
-                bar = "█" * min(int(count / max(1, max([r[1] for r in results])) * 50), 50)
+                bar = "█" * min(int(count / max_count * 50), 50)
                 print(f"{hour:4} | {count:5} | {bar}")
 
         except Exception as err:
             print(f"❌ Error: {err}")
 
-    def do_device_stats(self, arg):
+    def do_device_stats(self, _arg):
         """Show device statistics"""
         try:
             results = self.analytics.get_device_statistics()
@@ -380,7 +380,7 @@ class ClickHouseCLI(Cmd):
             return
 
         try:
-            result = self.db.client.query(arg)
+            result = self.db.query(arg)
 
             if result.result_rows:
                 headers = [col[0] for col in result.column_names]
@@ -395,21 +395,21 @@ class ClickHouseCLI(Cmd):
     # ============================================
     # SYSTEM COMMANDS
     # ============================================
-    @staticmethod
-    def do_clear(self, arg):
+
+    def do_clear(self, _arg):
         """Clear the screen"""
         import os
         os.system('cls' if os.name == 'nt' else 'clear')
 
-    def do_exit(self, arg):
+    def do_exit(self, _arg):
         """Exit the CLI"""
         print("👋 Goodbye!")
         self.db.close()
         return True
 
-    def do_quit(self, arg):
+    def do_quit(self, _arg):
         """Exit the CLI"""
-        return self.do_exit(arg)
+        return self.do_exit(_arg)
 
     # ============================================
     # HELP
@@ -482,6 +482,7 @@ class ClickHouseCLI(Cmd):
         else:
             self.help_commands()
 
+
 if __name__ == "__main__":
     try:
         from tabulate import tabulate
@@ -494,8 +495,6 @@ if __name__ == "__main__":
         subprocess.check_call([sys.executable, "-m", "pip", "install", "tabulate"])
         print("✅ tabulate installed. Please restart the CLI.")
         sys.exit(1)
-
-
     except KeyboardInterrupt:
         print("\n👋 Goodbye!")
         sys.exit(0)

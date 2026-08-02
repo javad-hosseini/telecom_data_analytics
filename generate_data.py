@@ -11,7 +11,7 @@ import calendar
 HOST = "192.168.247.128"
 DATABASE = "telecom_analytics"
 BATCH_SIZE = 50_000  # Records per batch
-TOTAL_RECORDS = 5_000_000  # number of records
+TOTAL_RECORDS = 900_000  # number of records
 
 # ============================================
 # DATA POOLS

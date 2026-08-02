@@ -18,6 +18,22 @@ class NetworkEventRepository:
         self.table_name = "network_events"
 
     # ============================================
+    # GENERIC QUERY EXECUTION
+    # ============================================
+
+    def execute_query(self, query: str) -> List[Any]:
+        """
+        اجرای کوئری دلخواه (برای استفاده در سرویس‌ها)
+
+        Args:
+            query: کوئری SQL
+
+        Returns:
+            List of result rows
+        """
+        return self.client.query(query).result_rows
+
+    # ============================================
     # CREATE OPERATIONS
     # ============================================
 
