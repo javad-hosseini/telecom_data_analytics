@@ -1,16 +1,31 @@
-from typing import List, Dict, Any
+# services/analytics_service.py
+# All the analytics and reporting queries live here.
+# These are the "business intelligence" queries - aggregations, trends, stats.
+
+from typing import List, Dict
+
 from core.interfaces.services import IAnalyticsService
 from repositories.network_event_repository import NetworkEventRepository
 
 
 class AnalyticsService(IAnalyticsService):
-    """سرویس تحلیل‌های آماری"""
+    """
+    Handles all analytical queries.
+
+    While EventService deals with single events or users,
+    this service looks at the big picture - trends, rankings, and summaries.
+    """
 
     def __init__(self, repository: NetworkEventRepository):
         self.repo = repository
 
     async def get_top_apps(self, limit: int = 10) -> List[Dict]:
-        """دریافت اپلیکیشن‌های پرمصرف"""
+        """
+        Get the most used applications.
+
+        Ranks apps by the number of events they generated.
+        Useful for understanding user behavior and app popularity.
+        """
         query = f"""
             SELECT 
                 app_name, 
@@ -27,7 +42,12 @@ class AnalyticsService(IAnalyticsService):
         ]
 
     async def get_network_quality(self) -> List[Dict]:
-        """گزارش کیفیت شبکه"""
+        """
+        Compare network performance across different network types.
+
+        Shows average latency, packet loss, and speed for each network type.
+        Helps identify which networks perform best.
+        """
         query = """
             SELECT 
                 network_type,
@@ -52,7 +72,12 @@ class AnalyticsService(IAnalyticsService):
         ]
 
     async def get_hourly_heatmap(self, days: int = 7) -> List[Dict]:
-        """توزیع ساعتی رویدادها"""
+        """
+        Show when events happen most.
+
+        Groups events by hour of day for the last N days.
+        Great for finding peak usage hours.
+        """
         query = f"""
             SELECT 
                 toHour(event_time) as hour,
@@ -69,7 +94,12 @@ class AnalyticsService(IAnalyticsService):
         ]
 
     async def get_device_stats(self) -> List[Dict]:
-        """آمار دستگاه‌ها"""
+        """
+        Analyze performance by device type.
+
+        Shows which devices are most common and how they perform.
+        Useful for device optimization decisions.
+        """
         query = """
             SELECT 
                 device,
@@ -93,7 +123,12 @@ class AnalyticsService(IAnalyticsService):
         ]
 
     async def get_city_stats(self, limit: int = 10) -> List[Dict]:
-        """آمار شهرها"""
+        """
+        Get city-level statistics.
+
+        Shows which cities have the most traffic, unique users, and average latency.
+        Great for geographic analysis and capacity planning.
+        """
         query = f"""
             SELECT 
                 city,

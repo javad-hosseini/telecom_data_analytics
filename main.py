@@ -1,3 +1,7 @@
+# main.py
+# The CLI (Command Line Interface) entry point for the telecom analytics tool.
+# Users can run queries and manage data directly from the terminal.
+
 import sys
 from cmd import Cmd
 
@@ -9,7 +13,12 @@ from repositories.network_event_repository import NetworkEventRepository
 
 
 class ClickHouseCLI(Cmd):
-    """Interactive CLI for ClickHouse Telecom Analytics"""
+    """
+    Interactive CLI for ClickHouse Telecom Analytics.
+
+    This is the terminal-based interface. Users type commands
+    and get results printed as tables or formatted text.
+    """
 
     intro = """
     ╔══════════════════════════════════════════════════════════════╗
@@ -25,19 +34,20 @@ class ClickHouseCLI(Cmd):
     def __init__(self):
         super().__init__()
 
-        # دریافت تنظیمات از config
+        # Load settings from config
         self.settings = get_settings()
 
-        # Initialize connections - استفاده از Singleton
+        # Connect to ClickHouse using the singleton instance
         print("⏳ Connecting to ClickHouse...")
 
         self.db = ClickHouseClient.get_instance()
 
+        # Initialize all the layers we need
         self.repo = NetworkEventRepository(self.db)
         self.analytics = NetworkEventAnalytics(self.db)
         self.partition = PartitionManager(self.db)
 
-        # Check connection
+        # Test the connection and show total events
         try:
             total = self.repo.count()
             print(f"✅ Connected successfully! Total events: {total:,}")
@@ -45,9 +55,9 @@ class ClickHouseCLI(Cmd):
             print(f"❌ Connection failed: {err}")
             sys.exit(1)
 
-    # ============================================
-    # BASIC COMMANDS
-    # ============================================
+    # ------------------------------------------------------------------
+    # BASIC COMMANDS - View data and get information
+    # ------------------------------------------------------------------
 
     def do_count(self, _arg):
         """Show total number of events"""
@@ -67,6 +77,7 @@ class ClickHouseCLI(Cmd):
                 print("⚠️  No data found")
                 return
 
+            # Format the data as a nice table
             headers = ["Time", "User", "Type", "City", "Device", "Network", "App", "Latency", "Speed", "Packet Loss"]
             table = []
             for row in rows:
@@ -102,7 +113,7 @@ class ClickHouseCLI(Cmd):
                 print(f"⚠️  No events found for user {user_id}")
                 return
 
-            # Stats
+            # Show user statistics
             stats = self.repo.get_stats_by_user(user_id)
             print(f"\n👤 User: {user_id}")
             print(f"   Total Events: {stats['total_events']}")
@@ -159,7 +170,7 @@ class ClickHouseCLI(Cmd):
             print(f"❌ Error: {err}")
 
     def do_info(self, _arg):
-        """Show table information"""
+        """Show table information - schema, size, date range, distinct values"""
         try:
             info = self.repo.get_table_info()
             date_range = self.repo.get_date_range()
@@ -173,7 +184,7 @@ class ClickHouseCLI(Cmd):
             if date_range['min_date'] and date_range['max_date']:
                 print(f"   Date Range: {date_range['min_date']} to {date_range['max_date']}")
 
-            # Distinct values
+            # Show what values exist in key columns
             print("\n🏷️  Distinct Values:")
             cities = self.repo.get_distinct_values('city')
             print(f"   Cities: {', '.join(cities)}")
@@ -187,9 +198,9 @@ class ClickHouseCLI(Cmd):
         except Exception as err:
             print(f"❌ Error: {err}")
 
-    # ============================================
-    # PARTITION COMMANDS
-    # ============================================
+    # ------------------------------------------------------------------
+    # PARTITION COMMANDS - Manage table partitions
+    # ------------------------------------------------------------------
 
     def do_partition_create(self, _arg):
         """Create a partitioned table"""
@@ -223,7 +234,7 @@ class ClickHouseCLI(Cmd):
             print("❌ Please provide a valid number. Usage: partition_clean 6")
 
     def do_partition_status(self, _arg):
-        """Show table status"""
+        """Show table status - original and partitioned tables"""
         status = self.partition.get_table_status()
         print("\n📊 Table Status:")
         print("-" * 50)
@@ -242,9 +253,9 @@ class ClickHouseCLI(Cmd):
             print(f"  Rows: {status['partitioned']['rows']:,}")
             print(f"  Size: {status['partitioned']['size']}")
 
-    # ============================================
-    # ANALYTICS COMMANDS
-    # ============================================
+    # ------------------------------------------------------------------
+    # ANALYTICS COMMANDS - Reports and insights
+    # ------------------------------------------------------------------
 
     def do_top_apps(self, arg):
         """Show top applications by usage. Usage: top_apps [limit]"""
@@ -330,7 +341,7 @@ class ClickHouseCLI(Cmd):
             print(f"❌ Error: {err}")
 
     def do_hourly_heatmap(self, _arg):
-        """Show hourly event distribution"""
+        """Show hourly event distribution with a visual bar chart"""
         try:
             results = self.analytics.get_hourly_heatmap()
 
@@ -369,9 +380,9 @@ class ClickHouseCLI(Cmd):
         except Exception as err:
             print(f"❌ Error: {err}")
 
-    # ============================================
-    # CUSTOM QUERY
-    # ============================================
+    # ------------------------------------------------------------------
+    # CUSTOM QUERY - Run raw SQL
+    # ------------------------------------------------------------------
 
     def do_query(self, arg):
         """Execute custom SQL query. Usage: query <SQL>"""
@@ -392,9 +403,9 @@ class ClickHouseCLI(Cmd):
         except Exception as err:
             print(f"❌ Query error: {err}")
 
-    # ============================================
+    # ------------------------------------------------------------------
     # SYSTEM COMMANDS
-    # ============================================
+    # ------------------------------------------------------------------
 
     def do_clear(self, _arg):
         """Clear the screen"""
@@ -411,21 +422,21 @@ class ClickHouseCLI(Cmd):
         """Exit the CLI"""
         return self.do_exit(_arg)
 
-    # ============================================
-    # HELP
-    # ============================================
+    # ------------------------------------------------------------------
+    # HELP - Show available commands
+    # ------------------------------------------------------------------
 
     def help_commands(self):
         """List all available commands"""
         commands = [
-            # ===== BASIC COMMANDS =====
+            # Basic commands
             ("count", "Show total number of events"),
             ("sample [n]", "Show n sample events (default: 5)"),
             ("user <id>", "Show events and stats for a user"),
             ("latest [n]", "Show n latest events (default: 10)"),
             ("info", "Show table information"),
 
-            # ===== ANALYTICS COMMANDS =====
+            # Analytics commands
             ("top_apps [n]", "Show top n applications (default: 10)"),
             ("top_cities [n]", "Show top n cities (default: 10)"),
             ("network_quality", "Show network quality report"),
@@ -433,7 +444,7 @@ class ClickHouseCLI(Cmd):
             ("hourly_heatmap", "Show hourly event distribution"),
             ("device_stats", "Show device statistics"),
 
-            # ===== PARTITION COMMANDS =====
+            # Partition commands
             ("partition_status", "Show table and partition status"),
             ("partition_create", "Create a partitioned table"),
             ("partition_migrate", "Migrate data to partitioned table"),
@@ -443,7 +454,7 @@ class ClickHouseCLI(Cmd):
             ("partition_clean <months>", "Drop partitions older than N months (default: 6)"),
             ("partition_merge", "Optimize table by merging partitions"),
 
-            # ===== UTILITY COMMANDS =====
+            # Utility commands
             ("query <SQL>", "Execute custom SQL query"),
             ("clear", "Clear the screen"),
             ("exit/quit", "Exit the CLI"),
@@ -473,7 +484,6 @@ class ClickHouseCLI(Cmd):
     def do_help(self, arg):
         """Show help for commands"""
         if arg:
-            # Show help for specific command
             method = getattr(self, f"do_{arg}", None)
             if method and method.__doc__:
                 print(f"\n📖 {method.__doc__}")
@@ -482,6 +492,10 @@ class ClickHouseCLI(Cmd):
         else:
             self.help_commands()
 
+
+# ------------------------------------------------------------------
+# ENTRY POINT
+# ------------------------------------------------------------------
 
 if __name__ == "__main__":
     try:

@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import Optional
+# api/routes/partitions.py
+# API endpoints for partition management.
+# These endpoints handle viewing and managing table partitions.
 
+from fastapi import APIRouter, Depends, HTTPException, Query
+
+from api.dependencies import get_partition_service
 from api.models.response_models import ApiResponse
 from services.partition_service import PartitionService
-from api.dependencies import get_partition_service
 
 router = APIRouter()
 
@@ -12,7 +15,7 @@ router = APIRouter()
 async def get_partition_status(
         service: PartitionService = Depends(get_partition_service)
 ):
-    """دریافت وضعیت پارتیشن‌ها"""
+    """Get information about all active partitions"""
     try:
         result = await service.get_partition_status()
         return ApiResponse(
@@ -32,9 +35,11 @@ async def drop_partition(
         service: PartitionService = Depends(get_partition_service)
 ):
     """
-    حذف یک پارتیشن
+    Delete a specific partition.
 
-    - **year_month**: فرمت YYYYMM (مثال: 202401)
+    - **year_month**: Format YYYYMM (e.g., 202401 for January 2024)
+
+    WARNING: This permanently deletes all data in that partition!
     """
     try:
         result = await service.drop_partition(year_month)
@@ -50,10 +55,15 @@ async def drop_partition(
 
 @router.post("/clean", response_model=ApiResponse)
 async def clean_old_partitions(
-        months: int = Query(6, ge=1, le=24, description="حذف پارتیشن‌های قدیمی‌تر از N ماه"),
+        months: int = Query(6, ge=1, le=24, description="Delete partitions older than N months"),
         service: PartitionService = Depends(get_partition_service)
 ):
-    """پاکسازی خودکار پارتیشن‌های قدیمی"""
+    """
+    Automatically delete partitions older than N months.
+
+    Useful for data retention policies - keep only recent data
+    and clean up old stuff to save storage.
+    """
     try:
         result = await service.clean_old_partitions(months)
         return ApiResponse(

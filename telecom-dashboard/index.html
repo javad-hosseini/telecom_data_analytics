@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Telecom Analytics — ClickHouse Dashboard</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/components.css" />
+<link rel="stylesheet" href="css/animations.css" />
+<link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body>
+
+<div class="noise-overlay"></div>
+
+<!-- ===================== SIDEBAR ===================== -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-mark"><i data-lucide="radio-tower"></i></div>
+    <div class="brand-text">
+      <span class="brand-title">Telecom</span>
+      <span class="brand-sub">Analytics Platform</span>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <button class="nav-item active" data-view="overview">
+      <i data-lucide="layout-dashboard"></i><span>داشبورد</span>
+    </button>
+    <button class="nav-item" data-view="events">
+      <i data-lucide="list-tree"></i><span>رویدادها</span>
+    </button>
+    <button class="nav-item" data-view="analytics">
+      <i data-lucide="bar-chart-3"></i><span>تحلیل‌ها</span>
+    </button>
+    <button class="nav-item" data-view="partitions">
+      <i data-lucide="layers"></i><span>پارتیشن‌ها</span>
+    </button>
+    <button class="nav-item" data-view="health">
+      <i data-lucide="heart-pulse"></i><span>سلامت سیستم</span>
+    </button>
+    <button class="nav-item" data-view="settings">
+      <i data-lucide="settings-2"></i><span>تنظیمات</span>
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="mini-status" id="sidebarStatus">
+      <span class="dot dot-pending"></span>
+      <span class="mini-status-text">در حال بررسی...</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ===================== MAIN ===================== -->
+<div class="main">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <button class="icon-btn only-mobile" id="menuToggle" aria-label="منو">
+      <i data-lucide="menu"></i>
+    </button>
+
+    <div class="topbar-title">
+      <h1 id="viewTitle">نمای کلی</h1>
+      <p id="viewSubtitle">وضعیت زنده‌ی شبکه در یک نگاه</p>
+    </div>
+
+    <div class="topbar-right">
+      <div class="clock-chip" id="clockChip">
+        <i data-lucide="clock"></i>
+        <span id="clockText">--:--:--</span>
+      </div>
+
+      <div class="status-chip" id="apiStatusChip">
+        <span class="dot dot-pending" id="apiStatusDot"></span>
+        <span id="apiStatusText">در حال اتصال</span>
+      </div>
+
+      <button class="icon-btn refresh-btn" id="refreshBtn" aria-label="بروزرسانی">
+        <i data-lucide="refresh-cw"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- CONTENT -->
+  <main class="content" id="content">
+
+    <!-- ============ OVERVIEW ============ -->
+    <section class="view active" id="view-overview">
+
+      <div class="kpi-grid" id="kpiGrid">
+        <!-- KPI cards injected here -->
+      </div>
+
+      <div class="panel-grid">
+        <div class="glass-card chart-card">
+          <div class="card-head">
+            <div>
+              <h3>پرمصرف‌ترین اپلیکیشن‌ها</h3>
+              <p class="card-sub">بر اساس تعداد رویداد</p>
+            </div>
+            <i data-lucide="smartphone" class="card-head-icon"></i>
+          </div>
+          <div class="chart-wrap"><canvas id="chartTopApps"></canvas></div>
+        </div>
+
+        <div class="glass-card chart-card">
+          <div class="card-head">
+            <div>
+              <h3>کیفیت شبکه</h3>
+              <p class="card-sub">میانگین تأخیر بر اساس نوع شبکه</p>
+            </div>
+            <i data-lucide="signal" class="card-head-icon"></i>
+          </div>
+          <div class="chart-wrap"><canvas id="chartNetworkQuality"></canvas></div>
+        </div>
+
+        <div class="glass-card chart-card wide">
+          <div class="card-head">
+            <div>
+              <h3>توزیع ساعتی رویدادها</h3>
+              <p class="card-sub">۷ روز اخیر</p>
+            </div>
+            <i data-lucide="activity" class="card-head-icon"></i>
+          </div>
+          <div class="chart-wrap"><canvas id="chartHourly"></canvas></div>
+        </div>
+
+        <div class="glass-card chart-card">
+          <div class="card-head">
+            <div>
+              <h3>شهرهای برتر</h3>
+              <p class="card-sub">حجم ترافیک شهری</p>
+            </div>
+            <i data-lucide="map-pin" class="card-head-icon"></i>
+          </div>
+          <div class="chart-wrap"><canvas id="chartCities"></canvas></div>
+        </div>
+
+        <div class="glass-card chart-card">
+          <div class="card-head">
+            <div>
+              <h3>آمار دستگاه‌ها</h3>
+              <p class="card-sub">پرکاربردترین دستگاه‌ها</p>
+            </div>
+            <i data-lucide="tablet-smartphone" class="card-head-icon"></i>
+          </div>
+          <div class="chart-wrap"><canvas id="chartDevices"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ EVENTS ============ -->
+    <section class="view" id="view-events">
+      <div class="glass-card table-card">
+        <div class="card-head">
+          <div>
+            <h3>جدول رویدادها</h3>
+            <p class="card-sub" id="eventsCountLabel">در حال بارگذاری...</p>
+          </div>
+          <div class="table-tools">
+            <div class="search-box">
+              <i data-lucide="search"></i>
+              <input type="text" id="eventSearchInput" placeholder="جستجو در شهر، اپلیکیشن، دستگاه..." />
+            </div>
+            <button class="icon-btn" id="eventsRefreshBtn" title="بروزرسانی">
+              <i data-lucide="refresh-cw"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="table-scroll">
+          <table class="data-table" id="eventsTable">
+            <thead>
+              <tr>
+                <th data-key="0">زمان</th>
+                <th data-key="1">کاربر</th>
+                <th data-key="2">نوع رویداد</th>
+                <th data-key="4">شهر</th>
+                <th data-key="5">دستگاه</th>
+                <th data-key="6">شبکه</th>
+                <th data-key="7">اپلیکیشن</th>
+                <th data-key="8">تأخیر</th>
+                <th data-key="9">سرعت</th>
+                <th data-key="10">افت پکت</th>
+              </tr>
+            </thead>
+            <tbody id="eventsTableBody">
+              <!-- rows -->
+            </tbody>
+          </table>
+
+          <div class="table-empty" id="eventsEmptyState" hidden>
+            <i data-lucide="inbox"></i>
+            <p>رویدادی برای نمایش پیدا نشد</p>
+          </div>
+        </div>
+
+        <div class="table-footer">
+          <div class="pagination" id="eventsPagination"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ANALYTICS ============ -->
+    <section class="view" id="view-analytics">
+      <div class="section-controls">
+        <label class="control-label">بازه‌ی زمانی توزیع ساعتی</label>
+        <select id="hourlyDaysSelect" class="glass-select">
+          <option value="3">۳ روز اخیر</option>
+          <option value="7" selected>۷ روز اخیر</option>
+          <option value="14">۱۴ روز اخیر</option>
+          <option value="30">۳۰ روز اخیر</option>
+        </select>
+      </div>
+
+      <div class="panel-grid">
+        <div class="glass-card chart-card">
+          <div class="card-head">
+            <div><h3>اپلیکیشن‌های پرمصرف</h3><p class="card-sub">Top Apps</p></div>
+            <i data-lucide="smartphone" class="card-head-icon"></i>
+          </div>
+          <div class="chart-wrap"><canvas id="chartAnalyticsApps"></canvas></div>
+        </div>
+
+        <div class="glass-card chart-card">
+          <div class="card-head">
+            <div><h3>افت پکت به تفکیک شبکه</h3><p class="card-sub">Packet Loss</p></div>
+            <i data-lucide="wifi-off" class="card-head-icon"></i>
+          </div>
+          <div class="chart-wrap"><canvas id="chartPacketLoss"></canvas></div>
+        </div>
+
+        <div class="glass-card chart-card wide">
+          <div class="card-head">
+            <div><h3>توزیع ساعتی</h3><p class="card-sub">Hourly Heatmap</p></div>
+            <i data-lucide="activity" class="card-head-icon"></i>
+          </div>
+          <div class="chart-wrap"><canvas id="chartAnalyticsHourly"></canvas></div>
+        </div>
+
+        <div class="glass-card chart-card">
+          <div class="card-head">
+            <div><h3>سرعت دانلود به تفکیک دستگاه</h3><p class="card-sub">Device Speed</p></div>
+            <i data-lucide="download" class="card-head-icon"></i>
+          </div>
+          <div class="chart-wrap"><canvas id="chartDeviceSpeed"></canvas></div>
+        </div>
+
+        <div class="glass-card chart-card">
+          <div class="card-head">
+            <div><h3>کاربران یکتا به تفکیک شهر</h3><p class="card-sub">Unique Users</p></div>
+            <i data-lucide="users" class="card-head-icon"></i>
+          </div>
+          <div class="chart-wrap"><canvas id="chartCityUsers"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PARTITIONS ============ -->
+    <section class="view" id="view-partitions">
+      <div class="card-head standalone-head">
+        <div>
+          <h3>پارتیشن‌های جدول</h3>
+          <p class="card-sub">مدیریت پارتیشن‌های ماهانه‌ی ClickHouse</p>
+        </div>
+        <div class="partition-actions">
+          <div class="inline-field">
+            <label for="cleanMonthsInput">پاکسازی قدیمی‌تر از (ماه)</label>
+            <input type="number" id="cleanMonthsInput" min="1" max="24" value="6" />
+          </div>
+          <button class="btn btn-warning" id="cleanPartitionsBtn">
+            <i data-lucide="trash-2"></i> پاکسازی خودکار
+          </button>
+          <button class="icon-btn" id="partitionsRefreshBtn" title="بروزرسانی">
+            <i data-lucide="refresh-cw"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="partitions-grid" id="partitionsGrid">
+        <!-- partition cards injected -->
+      </div>
+    </section>
+
+    <!-- ============ HEALTH ============ -->
+    <section class="view" id="view-health">
+      <div class="health-grid">
+        <div class="glass-card health-card" id="healthOverallCard">
+          <div class="health-badge">
+            <span class="pulse-ring" id="healthPulse"></span>
+            <i data-lucide="server" id="healthIcon"></i>
+          </div>
+          <h3 id="healthOverallText">در حال بررسی سیستم...</h3>
+          <p class="card-sub" id="healthTimestamp">—</p>
+        </div>
+
+        <div class="glass-card health-card">
+          <div class="health-badge secondary">
+            <i data-lucide="database"></i>
+          </div>
+          <h3 id="healthDbText">ClickHouse</h3>
+          <p class="card-sub" id="healthDbDetail">در حال بررسی...</p>
+        </div>
+
+        <div class="glass-card health-card">
+          <div class="health-badge secondary">
+            <i data-lucide="shield-check"></i>
+          </div>
+          <h3 id="healthReadyText">آمادگی سرویس</h3>
+          <p class="card-sub" id="healthReadyDetail">در حال بررسی...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SETTINGS ============ -->
+    <section class="view" id="view-settings">
+      <div class="glass-card settings-card">
+        <div class="card-head">
+          <div><h3>تنظیمات اتصال</h3><p class="card-sub">آدرس API بک‌اند FastAPI</p></div>
+          <i data-lucide="server-cog" class="card-head-icon"></i>
+        </div>
+
+        <div class="settings-body">
+          <div class="field-group">
+            <label for="apiBaseInput">Base URL</label>
+            <input type="text" id="apiBaseInput" placeholder="http://localhost:8000" />
+          </div>
+          <div class="settings-actions">
+            <button class="btn btn-primary" id="saveSettingsBtn">
+              <i data-lucide="check"></i> ذخیره و تست اتصال
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- toast container -->
+<div class="toast-stack" id="toastStack"></div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+<script src="js/utils.js"></script>
+<script src="js/api.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/table.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

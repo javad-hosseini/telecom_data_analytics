@@ -1,4 +1,6 @@
 # database/clickhouse_client.py
+# Manages ClickHouse connection using Singleton pattern
+
 import logging
 from typing import Optional, Any
 
@@ -10,22 +12,27 @@ logger = logging.getLogger(__name__)
 
 
 class ClickHouseClient:
-    """مدیریت اتصال به ClickHouse با استفاده از الگوی Singleton"""
+    """
+    Singleton client for ClickHouse - ensures we only have one connection
+    throughout the app. Everywhere that needs DB access uses this instance.
+    """
 
-    _instance: Optional['ClickHouseClient'] = None
-    _client: Optional[Any] = None
+    _instance: Optional['ClickHouseClient'] = None  # the one and only instance
+    _client: Optional[Any] = None  # the actual ClickHouse connection
 
     def __new__(cls):
+        # Return existing instance if already created
         if cls._instance is None:
             cls._instance = super(ClickHouseClient, cls).__new__(cls)
         return cls._instance
 
     def __init__(self):
+        # Only connect if we haven't already
         if self._client is None:
             self._connect()
 
     def _connect(self):
-        """برقراری اتصال به ClickHouse"""
+        """Actually connects to ClickHouse and creates the client"""
         try:
             settings = get_settings()
 
@@ -48,20 +55,20 @@ class ClickHouseClient:
 
     @classmethod
     def get_instance(cls) -> 'ClickHouseClient':
-        """دریافت نمونه Singleton"""
+        """Get the singleton instance, creates it if it doesn't exist"""
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
 
     @property
     def client(self):
-        """دریافت کلاینت ClickHouse"""
+        """Get the actual ClickHouse client, reconnects if it's gone"""
         if self._client is None:
             self._connect()
         return self._client
 
     def query(self, query: str) -> Any:
-        """اجرای کوئری"""
+        """Run a simple query and return the result"""
         try:
             return self.client.query(query)
         except Exception as e:
@@ -70,7 +77,7 @@ class ClickHouseClient:
             raise
 
     def insert(self, table: str, data: list, column_names: list = None) -> None:
-        """درج داده"""
+        """Insert data into the specified table"""
         try:
             self.client.insert(table, data, column_names=column_names)
         except Exception as e:
@@ -78,7 +85,7 @@ class ClickHouseClient:
             raise
 
     def command(self, command: str) -> Any:
-        """اجرای دستور (مانند ALTER)"""
+        """Execute a command like ALTER TABLE"""
         try:
             return self.client.command(command)
         except Exception as e:
@@ -87,7 +94,7 @@ class ClickHouseClient:
             raise
 
     def close(self):
-        """بستن اتصال"""
+        """Close the connection if it's open"""
         if self._client:
             self._client.close()
             self._client = None

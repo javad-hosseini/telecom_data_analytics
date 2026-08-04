@@ -1,16 +1,34 @@
+# services/partition_service.py
+# Manages table partitions - checking status, dropping old ones, cleaning up.
+# Partitions help keep the database fast by splitting data by month.
+
+from datetime import datetime, timedelta
 from typing import List, Dict, Any
-from datetime import datetime
+
 from repositories.network_event_repository import NetworkEventRepository
 
 
 class PartitionService:
-    """سرویس مدیریت پارتیشن‌ها"""
+    """
+    Handles all partition-related operations.
+
+    Partitions in ClickHouse are like monthly folders for your data.
+    This service helps you see what partitions exist and clean up old ones.
+    """
 
     def __init__(self, repository: NetworkEventRepository):
         self.repo = repository
 
     async def get_partition_status(self) -> List[Dict[str, Any]]:
-        """دریافت وضعیت پارتیشن‌ها"""
+        """
+        Get detailed info about all active partitions.
+
+        Shows:
+        - Partition name (like 202401 for January 2024)
+        - How many rows it contains
+        - Size on disk (both bytes and human-readable)
+        - Date range of events in that partition
+        """
         query = """
             SELECT 
                 partition,
@@ -27,6 +45,7 @@ class PartitionService:
         """
         result = self.repo.execute_query(query)
 
+        # Helper function to make file sizes readable
         def format_size(bytes_val):
             for unit in ['B', 'KB', 'MB', 'GB']:
                 if bytes_val < 1024.0:
@@ -47,8 +66,15 @@ class PartitionService:
         ]
 
     async def drop_partition(self, year_month: str) -> Dict[str, Any]:
-        """حذف یک پارتیشن"""
-        # اعتبارسنجی فرمت
+        """
+        Delete a specific partition.
+
+        WARNING: This permanently deletes all data in that partition!
+        Only use this if you're sure you want to remove that month's data.
+
+        The format must be YYYYMM (e.g., '202401' for January 2024).
+        """
+        # Make sure the format is correct before doing anything
         if not (len(year_month) == 6 and year_month.isdigit()):
             raise ValueError("Invalid partition format. Use YYYYMM")
 
@@ -62,16 +88,25 @@ class PartitionService:
         }
 
     async def clean_old_partitions(self, months: int) -> Dict[str, Any]:
-        """پاکسازی پارتیشن‌های قدیمی"""
-        # محاسبه تاریخ برش
-        from datetime import datetime, timedelta
+        """
+        Automatically delete partitions older than N months.
+
+        This is useful for data retention policies - keep only recent data
+        and automatically clean up old stuff to save storage.
+
+        For example: clean_old_partitions(6) keeps 6 months of data
+        and deletes everything older than that.
+        """
+        # Calculate the cutoff date (e.g., 6 months ago from today)
         cutoff_date = datetime.now() - timedelta(days=months * 30)
         cutoff_month = cutoff_date.strftime("%Y%m")
 
+        # Get all partitions and figure out which ones are old
         partitions = await self.get_partition_status()
         dropped = []
 
         for partition in partitions:
+            # If the partition name is smaller than cutoff, it's older
             if partition["partition_name"] < cutoff_month:
                 await self.drop_partition(partition["partition_name"])
                 dropped.append(partition["partition_name"])

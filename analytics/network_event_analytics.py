@@ -1,31 +1,32 @@
+# analytics/network_event_analytics.py
+# Analytics queries specifically for the CLI.
+# This is the CLI version of AnalyticsService - similar queries but returns tuples.
+
 from typing import List, Dict, Any, Tuple
 
 
 class NetworkEventAnalytics:
     """
-    Analytics layer for business intelligence queries on network events
+    Analytics layer for the CLI interface.
 
-    This layer handles:
-    - Aggregated analytics
-    - Business reports
-    - Performance metrics
-    - Trend analysis
+    This is the CLI counterpart to the API's AnalyticsService.
+    Returns data as tuples (not Pydantic models) since CLI doesn't need them.
+    Used by main.py for all analytics commands.
     """
 
     def __init__(self, client):
         self.client = client
         self.table_name = "network_events"
 
-    # ============================================
-    # APPLICATION ANALYTICS
-    # ============================================
+    # ------------------------------------------------------------------
+    # Application analytics - which apps are most used?
+    # ------------------------------------------------------------------
 
     def get_top_applications(self, limit: int = 10) -> List[Tuple[str, int, float, float]]:
         """
-        Get top applications by event count with performance metrics
+        Get top apps by usage count with performance metrics.
 
-        Returns:
-            List of (app_name, event_count, avg_latency, avg_speed)
+        Returns tuples: (app_name, event_count, avg_latency, avg_speed)
         """
         query = """
             SELECT
@@ -44,10 +45,9 @@ class NetworkEventAnalytics:
 
     def get_app_performance(self, app_name: str) -> Dict[str, Any]:
         """
-        Get detailed performance metrics for a specific application
+        Get detailed performance metrics for a specific app.
 
-        Returns:
-            Dict with performance metrics
+        Returns a dict with everything about that app's performance.
         """
         query = """
             SELECT
@@ -80,16 +80,15 @@ class NetworkEventAnalytics:
             "avg_packet_loss_pct": row[7]
         }
 
-    # ============================================
-    # CITY ANALYTICS
-    # ============================================
+    # ------------------------------------------------------------------
+    # City analytics - where is the traffic coming from?
+    # ------------------------------------------------------------------
 
     def get_top_cities_by_traffic(self, limit: int = 10) -> List[Tuple[str, int, float, float]]:
         """
-        Get top cities by traffic volume
+        Get cities with the most traffic.
 
-        Returns:
-            List of (city, event_count, avg_latency, avg_speed)
+        Returns tuples: (city, event_count, avg_latency, avg_speed)
         """
         query = """
             SELECT
@@ -108,10 +107,9 @@ class NetworkEventAnalytics:
 
     def get_city_network_quality(self, city: str) -> Dict[str, Any]:
         """
-        Get network quality metrics for a specific city
+        Get network quality metrics for a specific city.
 
-        Returns:
-            Dict with network quality metrics
+        Includes 5G and 4G penetration percentages.
         """
         query = """
             SELECT
@@ -141,16 +139,15 @@ class NetworkEventAnalytics:
             "4g_percentage": (row[5] / total) * 100 if total > 0 else 0
         }
 
-    # ============================================
-    # NETWORK ANALYTICS
-    # ============================================
+    # ------------------------------------------------------------------
+    # Network analytics - how do different networks perform?
+    # ------------------------------------------------------------------
 
     def get_network_quality_report(self) -> List[Tuple[str, int, float, float, float]]:
         """
-        Get network quality report by network type
+        Compare performance across different network types.
 
-        Returns:
-            List of (network_type, event_count, avg_latency, avg_speed, avg_packet_loss)
+        Returns tuples: (network_type, event_count, avg_latency, avg_speed, avg_packet_loss)
         """
         query = """
             SELECT
@@ -169,10 +166,9 @@ class NetworkEventAnalytics:
 
     def get_network_comparison(self) -> Dict[str, Any]:
         """
-        Compare 4G vs 5G performance
+        Direct comparison between 4G and 5G networks.
 
-        Returns:
-            Dict with comparison metrics
+        Returns a dict with both networks' metrics for easy comparison.
         """
         query = """
             SELECT
@@ -199,16 +195,15 @@ class NetworkEventAnalytics:
 
         return comparison
 
-    # ============================================
-    # TIME SERIES ANALYTICS
-    # ============================================
+    # ------------------------------------------------------------------
+    # Time series analytics - trends over time
+    # ------------------------------------------------------------------
 
     def get_daily_events_report(self, days: int = 7) -> List[Tuple[str, int, float, float]]:
         """
-        Get daily event counts and performance for last N days
+        Daily breakdown of events and performance for the last N days.
 
-        Returns:
-            List of (date, event_count, avg_latency, avg_speed)
+        Returns tuples: (date, event_count, avg_latency, avg_speed)
         """
         query = """
             SELECT
@@ -227,10 +222,10 @@ class NetworkEventAnalytics:
 
     def get_hourly_heatmap(self) -> List[Tuple[int, int]]:
         """
-        Get hourly distribution of events
+        Get hourly event distribution (0-23 hours).
 
-        Returns:
-            List of (hour, event_count)
+        Returns tuples: (hour, event_count)
+        Useful for finding peak usage times.
         """
         query = """
             SELECT
@@ -250,10 +245,9 @@ class NetworkEventAnalytics:
             end_time: str
     ) -> List[Tuple[str, int, float, float]]:
         """
-        Get events grouped by hour within a time range
+        Get events grouped by hour within a specific time range.
 
-        Returns:
-            List of (hour, event_count, avg_latency, avg_speed)
+        Returns tuples: (hour, event_count, avg_latency, avg_speed)
         """
         query = """
             SELECT
@@ -276,16 +270,15 @@ class NetworkEventAnalytics:
         )
         return result.result_rows
 
-    # ============================================
-    # DEVICE ANALYTICS
-    # ============================================
+    # ------------------------------------------------------------------
+    # Device analytics - which devices perform best?
+    # ------------------------------------------------------------------
 
     def get_device_statistics(self) -> List[Tuple[str, int, float, float]]:
         """
-        Get statistics by device type
+        Get device usage and performance statistics.
 
-        Returns:
-            List of (device, event_count, avg_latency, avg_speed)
+        Returns tuples: (device, event_count, avg_latency, avg_speed)
         """
         query = """
             SELECT
@@ -303,10 +296,9 @@ class NetworkEventAnalytics:
 
     def get_device_performance_ranking(self) -> List[Tuple[str, float, float, int]]:
         """
-        Rank devices by performance (speed and latency)
+        Rank devices by speed (best performers first).
 
-        Returns:
-            List of (device, avg_speed, avg_latency, event_count)
+        Only includes devices with more than 100 events for statistical significance.
         """
         query = """
             SELECT
@@ -323,16 +315,15 @@ class NetworkEventAnalytics:
         result = self.client.query(query)
         return result.result_rows
 
-    # ============================================
-    # USER ANALYTICS
-    # ============================================
+    # ------------------------------------------------------------------
+    # User analytics - who are the heavy users?
+    # ------------------------------------------------------------------
 
     def get_top_users_by_traffic(self, limit: int = 10) -> List[Tuple[int, int, float, float]]:
         """
-        Get top users by traffic volume
+        Find users with the most events.
 
-        Returns:
-            List of (user_id, event_count, avg_latency, avg_speed)
+        Returns tuples: (user_id, event_count, avg_latency, avg_speed)
         """
         query = """
             SELECT
@@ -351,10 +342,9 @@ class NetworkEventAnalytics:
 
     def get_user_activity_pattern(self, user_id: int) -> Dict[str, Any]:
         """
-        Get activity pattern for a specific user
+        Get comprehensive activity pattern for a specific user.
 
-        Returns:
-            Dict with user activity pattern
+        Shows how many cities they've been to, apps they use, etc.
         """
         query = """
             SELECT
@@ -383,16 +373,15 @@ class NetworkEventAnalytics:
             "last_active": row[5]
         }
 
-    # ============================================
-    # EVENT TYPE ANALYTICS
-    # ============================================
+    # ------------------------------------------------------------------
+    # Event type analytics - what types of events happen most?
+    # ------------------------------------------------------------------
 
     def get_event_type_distribution(self) -> List[Tuple[str, int, float]]:
         """
-        Get distribution of event types
+        Get distribution of event types with percentages.
 
-        Returns:
-            List of (event_type, count, percentage)
+        Returns tuples: (event_type, count, percentage_of_total)
         """
         query = """
             SELECT
@@ -409,10 +398,9 @@ class NetworkEventAnalytics:
 
     def get_event_type_trends(self, days: int = 7) -> List[Tuple[str, str, int]]:
         """
-        Get event type trends over time
+        See how different event types trend over time.
 
-        Returns:
-            List of (date, event_type, count)
+        Returns tuples: (date, event_type, count)
         """
         query = """
             SELECT
@@ -428,16 +416,15 @@ class NetworkEventAnalytics:
         result = self.client.query(query)
         return result.result_rows
 
-    # ============================================
-    # COMPOSITE REPORTS
-    # ============================================
+    # ------------------------------------------------------------------
+    # Composite reports - everything in one place
+    # ------------------------------------------------------------------
 
     def get_comprehensive_city_report(self, city: str) -> Dict[str, Any]:
         """
-        Get comprehensive report for a city
+        Get everything about a city in one report.
 
-        Returns:
-            Dict with all city metrics
+        Includes: overview, top apps, and hourly distribution.
         """
         report = {
             "city": city,
@@ -468,10 +455,9 @@ class NetworkEventAnalytics:
 
     def get_performance_metrics(self) -> Dict[str, Any]:
         """
-        Get overall system performance metrics
+        Get overall system performance metrics.
 
-        Returns:
-            Dict with overall metrics
+        The big picture: total events, avg latency, unique users, etc.
         """
         query = """
             SELECT

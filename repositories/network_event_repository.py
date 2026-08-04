@@ -1,51 +1,40 @@
+# repositories/network_event_repository.py
+# All database queries live here. This is where we actually talk to ClickHouse.
+
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime, timedelta
 
 
 class NetworkEventRepository:
     """
-    Repository for basic CRUD and retrieval operations on network_events table
+    Handles all CRUD operations for the network_events table.
 
-    This layer handles:
-    - Basic CRUD operations
-    - Simple filters (by user, time, type)
-    - Generic data access
-    - Count operations
+    Think of this as the "data layer" - services call these methods
+    to get or modify data without worrying about SQL details.
     """
 
     def __init__(self, client):
         self.client = client
         self.table_name = "network_events"
 
-    # ============================================
-    # GENERIC QUERY EXECUTION
-    # ============================================
+    # ------------------------------------------------------------------
+    # Generic query execution - used by services for custom queries
+    # ------------------------------------------------------------------
 
     def execute_query(self, query: str) -> List[Any]:
-        """
-        اجرای کوئری دلخواه (برای استفاده در سرویس‌ها)
-
-        Args:
-            query: کوئری SQL
-
-        Returns:
-            List of result rows
-        """
+        """Run any SQL query and return the results. Used by service layer."""
         return self.client.query(query).result_rows
 
-    # ============================================
-    # CREATE OPERATIONS
-    # ============================================
+    # ------------------------------------------------------------------
+    # Inserting data
+    # ------------------------------------------------------------------
 
     def create(self, rows: List[List[Any]]) -> int:
         """
-        Insert multiple rows into network_events table
+        Insert multiple rows into the table.
 
-        Args:
-            rows: List of rows, each row is a list of values in correct order
-
-        Returns:
-            int: Number of rows inserted
+        Each row should be a list of values in the exact order of columns.
+        Returns the number of rows inserted.
         """
         self.client.insert(
             self.table_name,
@@ -68,13 +57,10 @@ class NetworkEventRepository:
 
     def create_from_dicts(self, events: List[Dict[str, Any]]) -> int:
         """
-        Insert multiple events from list of dictionaries
+        Insert events from dictionaries.
 
-        Args:
-            events: List of dicts with keys matching column names
-
-        Returns:
-            int: Number of rows inserted
+        More convenient than create() - just pass a list of dicts
+        with column names as keys.
         """
         if not events:
             return 0
@@ -92,20 +78,12 @@ class NetworkEventRepository:
 
         return self.create(rows)
 
-    # ============================================
-    # READ OPERATIONS
-    # ============================================
+    # ------------------------------------------------------------------
+    # Reading data - various ways to fetch events
+    # ------------------------------------------------------------------
 
     def get_all(self, limit: int = 100) -> List[List[Any]]:
-        """
-        Get all events with a limit
-
-        Args:
-            limit: Maximum number of rows to return
-
-        Returns:
-            List of rows
-        """
+        """Get all events, but with a limit to avoid overload."""
         query = f"""
             SELECT *
             FROM {self.table_name}
@@ -115,14 +93,9 @@ class NetworkEventRepository:
 
     def get_by_id(self, event_time: datetime, user_id: int) -> Optional[List[Any]]:
         """
-        Get a specific event by primary key (event_time + user_id)
+        Fetch a specific event using its composite key.
 
-        Args:
-            event_time: Timestamp of the event
-            user_id: User identifier
-
-        Returns:
-            Single row or None
+        The primary key is (event_time, user_id) so we need both.
         """
         query = """
             SELECT *
@@ -143,16 +116,7 @@ class NetworkEventRepository:
         return result.result_rows[0] if result.result_rows else None
 
     def get_by_user_id(self, user_id: int, limit: int = 100) -> List[List[Any]]:
-        """
-        Get all events for a specific user
-
-        Args:
-            user_id: User identifier
-            limit: Maximum number of rows
-
-        Returns:
-            List of rows
-        """
+        """Get all events for a specific user, newest first."""
         query = """
             SELECT *
             FROM {table}
@@ -167,16 +131,7 @@ class NetworkEventRepository:
         ).result_rows
 
     def get_by_event_type(self, event_type: str, limit: int = 100) -> List[List[Any]]:
-        """
-        Get events by event type
-
-        Args:
-            event_type: Type of event (DATA_SESSION, CALL_START, etc.)
-            limit: Maximum number of rows
-
-        Returns:
-            List of rows
-        """
+        """Get events of a specific type (like CALL_START, DATA_SESSION, etc.)."""
         query = """
             SELECT *
             FROM {table}
@@ -191,16 +146,7 @@ class NetworkEventRepository:
         ).result_rows
 
     def get_by_city(self, city: str, limit: int = 100) -> List[List[Any]]:
-        """
-        Get events by city
-
-        Args:
-            city: City name
-            limit: Maximum number of rows
-
-        Returns:
-            List of rows
-        """
+        """Get events from a specific city."""
         query = """
             SELECT *
             FROM {table}
@@ -215,16 +161,7 @@ class NetworkEventRepository:
         ).result_rows
 
     def get_by_network_type(self, network_type: str, limit: int = 100) -> List[List[Any]]:
-        """
-        Get events by network type (4G, 5G, etc.)
-
-        Args:
-            network_type: Network type
-            limit: Maximum number of rows
-
-        Returns:
-            List of rows
-        """
+        """Get events by network type - 4G, 5G, WiFi, etc."""
         query = """
             SELECT *
             FROM {table}
@@ -239,16 +176,7 @@ class NetworkEventRepository:
         ).result_rows
 
     def get_by_app(self, app_name: str, limit: int = 100) -> List[List[Any]]:
-        """
-        Get events by application name
-
-        Args:
-            app_name: Application name
-            limit: Maximum number of rows
-
-        Returns:
-            List of rows
-        """
+        """Get events for a specific application (YouTube, Instagram, etc.)."""
         query = """
             SELECT *
             FROM {table}
@@ -268,17 +196,7 @@ class NetworkEventRepository:
             end_time: datetime,
             limit: int = 1000
     ) -> List[List[Any]]:
-        """
-        Get events within a time range
-
-        Args:
-            start_time: Start timestamp
-            end_time: End timestamp
-            limit: Maximum number of rows
-
-        Returns:
-            List of rows
-        """
+        """Get events between two timestamps."""
         query = """
             SELECT *
             FROM {table}
@@ -303,18 +221,7 @@ class NetworkEventRepository:
             end_time: datetime,
             limit: int = 1000
     ) -> List[List[Any]]:
-        """
-        Get events for a specific user within a time range
-
-        Args:
-            user_id: User identifier
-            start_time: Start timestamp
-            end_time: End timestamp
-            limit: Maximum number of rows
-
-        Returns:
-            List of rows
-        """
+        """Get events for a user within a specific time range."""
         query = """
             SELECT *
             FROM {table}
@@ -346,20 +253,10 @@ class NetworkEventRepository:
             limit: int = 100
     ) -> List[List[Any]]:
         """
-        Get events with multiple optional filters
+        The Swiss Army knife of queries - apply any combination of filters.
 
-        Args:
-            user_id: Filter by user
-            event_type: Filter by event type
-            city: Filter by city
-            network_type: Filter by network type
-            app_name: Filter by application
-            start_time: Filter by start time
-            end_time: Filter by end time
-            limit: Maximum number of rows
-
-        Returns:
-            List of rows
+        All parameters are optional. Only the ones you provide will be used.
+        Great for building dynamic search/filter functionality.
         """
         conditions = []
         params = {}
@@ -408,31 +305,18 @@ class NetworkEventRepository:
 
         return self.client.query(query, parameters=params).result_rows
 
-    # ============================================
-    # COUNT OPERATIONS
-    # ============================================
+    # ------------------------------------------------------------------
+    # Counting - get row counts with various filters
+    # ------------------------------------------------------------------
 
     def count(self) -> int:
-        """
-        Get total number of events
-
-        Returns:
-            int: Total count
-        """
+        """Total number of events in the table."""
         query = f"SELECT count() FROM {self.table_name}"
         result = self.client.query(query)
         return result.result_rows[0][0]
 
     def count_by_user(self, user_id: int) -> int:
-        """
-        Count events for a specific user
-
-        Args:
-            user_id: User identifier
-
-        Returns:
-            int: Number of events
-        """
+        """How many events does a user have?"""
         query = """
             SELECT count()
             FROM {table}
@@ -446,15 +330,7 @@ class NetworkEventRepository:
         return result.result_rows[0][0]
 
     def count_by_event_type(self, event_type: str) -> int:
-        """
-        Count events by event type
-
-        Args:
-            event_type: Type of event
-
-        Returns:
-            int: Number of events
-        """
+        """How many events of a specific type?"""
         query = """
             SELECT count()
             FROM {table}
@@ -468,15 +344,7 @@ class NetworkEventRepository:
         return result.result_rows[0][0]
 
     def count_by_city(self, city: str) -> int:
-        """
-        Count events by city
-
-        Args:
-            city: City name
-
-        Returns:
-            int: Number of events
-        """
+        """How many events from a specific city?"""
         query = """
             SELECT count()
             FROM {table}
@@ -490,15 +358,7 @@ class NetworkEventRepository:
         return result.result_rows[0][0]
 
     def count_by_network_type(self, network_type: str) -> int:
-        """
-        Count events by network type
-
-        Args:
-            network_type: Network type
-
-        Returns:
-            int: Number of events
-        """
+        """How many events on a specific network type?"""
         query = """
             SELECT count()
             FROM {table}
@@ -511,19 +371,41 @@ class NetworkEventRepository:
         )
         return result.result_rows[0][0]
 
-    # ============================================
-    # AGGREGATION OPERATIONS
-    # ============================================
+    def get_sample(self, sample_size: int = 10) -> List[List[Any]]:
+        """Get a random sample of events. Great for quick exploration."""
+        query = """
+            SELECT *
+            FROM {table}
+            ORDER BY rand()
+            LIMIT {limit}
+        """.format(table=self.table_name, limit=sample_size)
+
+        return self.client.query(query).result_rows
+
+    def get_latest(self, limit: int = 10) -> List[List[Any]]:
+        """Get the most recent events."""
+        query = """
+            SELECT *
+            FROM {table}
+            ORDER BY event_time DESC
+            LIMIT {limit}
+        """.format(table=self.table_name, limit=limit)
+
+        return self.client.query(query).result_rows
+
+    # ------------------------------------------------------------------
+    # Aggregations - summary statistics
+    # ------------------------------------------------------------------
 
     def get_stats_by_user(self, user_id: int) -> Dict[str, Any]:
         """
-        Get statistics for a specific user
+        Get comprehensive stats for a user.
 
-        Args:
-            user_id: User identifier
-
-        Returns:
-            Dict containing stats
+        Returns things like:
+        - total events
+        - average/min/max latency
+        - average/min/max download speed
+        - average packet loss
         """
         query = """
             SELECT
@@ -556,20 +438,12 @@ class NetworkEventRepository:
             "avg_packet_loss_pct": row[7]
         }
 
-    # ============================================
-    # DELETE OPERATIONS
-    # ============================================
+    # ------------------------------------------------------------------
+    # Deleting data - be careful with these!
+    # ------------------------------------------------------------------
 
     def delete_by_user(self, user_id: int) -> int:
-        """
-        Delete all events for a specific user
-
-        Args:
-            user_id: User identifier
-
-        Returns:
-            int: Number of rows deleted
-        """
+        """Delete all events for a user. Returns number of rows deleted."""
         query = """
             DELETE FROM {table}
             WHERE user_id = %(user_id)s
@@ -582,16 +456,7 @@ class NetworkEventRepository:
         return result.result_rows[0][0] if result.result_rows else 0
 
     def delete_by_time_range(self, start_time: datetime, end_time: datetime) -> int:
-        """
-        Delete events within a time range
-
-        Args:
-            start_time: Start timestamp
-            end_time: End timestamp
-
-        Returns:
-            int: Number of rows deleted
-        """
+        """Delete events within a time range."""
         query = """
             DELETE FROM {table}
             WHERE event_time >= %(start_time)s
@@ -608,15 +473,7 @@ class NetworkEventRepository:
         return result.result_rows[0][0] if result.result_rows else 0
 
     def delete_old_events(self, days: int = 30) -> int:
-        """
-        Delete events older than specified days
-
-        Args:
-            days: Number of days to keep
-
-        Returns:
-            int: Number of rows deleted
-        """
+        """Delete events older than N days. Useful for data retention policies."""
         query = """
             DELETE FROM {table}
             WHERE event_time < now() - INTERVAL {days} DAY
@@ -625,24 +482,19 @@ class NetworkEventRepository:
         result = self.client.query(query)
         return result.result_rows[0][0] if result.result_rows else 0
 
-    # ============================================
-    # PAGINATION
-    # ============================================
+    # ------------------------------------------------------------------
+    # Pagination - for when you have lots of data
+    # ------------------------------------------------------------------
 
     def paginate(self, page: int = 1, per_page: int = 50) -> Dict[str, Any]:
         """
-        Get paginated results
+        Get a page of results.
 
-        Args:
-            page: Page number (starts from 1)
-            per_page: Items per page
-
-        Returns:
-            Dict with items, total, page, per_page
+        Page numbers start at 1.
+        Returns items plus pagination metadata (total, total_pages, etc.).
         """
         offset = (page - 1) * per_page
 
-        # Get items
         query = """
             SELECT *
             FROM {table}
@@ -656,8 +508,6 @@ class NetworkEventRepository:
         )
 
         items = self.client.query(query).result_rows
-
-        # Get total count
         total = self.count()
 
         return {
@@ -668,12 +518,12 @@ class NetworkEventRepository:
             "total_pages": (total + per_page - 1) // per_page if total > 0 else 0
         }
 
-    # ============================================
-    # UTILITY METHODS
-    # ============================================
+    # ------------------------------------------------------------------
+    # Utility methods - helpful for debugging and exploration
+    # ------------------------------------------------------------------
 
     def get_column_names(self) -> List[str]:
-        """Get all column names of the table"""
+        """Get list of all column names in the table."""
         query = """
             SELECT name
             FROM system.columns
@@ -685,7 +535,7 @@ class NetworkEventRepository:
         return [row[0] for row in result.result_rows]
 
     def get_table_info(self) -> Dict[str, Any]:
-        """Get information about the table"""
+        """Get metadata about the table - name, engine, size, row count."""
         query = """
             SELECT
                 name,
@@ -709,35 +559,8 @@ class NetworkEventRepository:
             "total_size_human": row[4]
         }
 
-    def get_sample(self, sample_size: int = 10) -> List[List[Any]]:
-        """
-        Get a random sample of events
-
-        Args:
-            sample_size: Number of random rows
-
-        Returns:
-            List of rows
-        """
-        query = """
-            SELECT *
-            FROM {table}
-            ORDER BY rand()
-            LIMIT {limit}
-        """.format(table=self.table_name, limit=sample_size)
-
-        return self.client.query(query).result_rows
-
     def get_distinct_values(self, column: str) -> List[str]:
-        """
-        Get all distinct values for a column
-
-        Args:
-            column: Column name
-
-        Returns:
-            List of distinct values
-        """
+        """Get all unique values for a column. Useful for building dropdowns."""
         query = """
             SELECT DISTINCT {column}
             FROM {table}
@@ -748,12 +571,7 @@ class NetworkEventRepository:
         return [row[0] for row in result.result_rows]
 
     def get_date_range(self) -> Dict[str, Optional[datetime]]:
-        """
-        Get min and max event_time in the table
-
-        Returns:
-            Dict with min_date and max_date
-        """
+        """Get the earliest and latest event timestamps in the table."""
         query = """
             SELECT
                 min(event_time) as min_date,
@@ -768,22 +586,3 @@ class NetworkEventRepository:
             "min_date": row[0],
             "max_date": row[1]
         }
-
-    def get_latest(self, limit: int = 10) -> List[List[Any]]:
-        """
-        Get latest events
-
-        Args:
-            limit: Number of events to return
-
-        Returns:
-            List of rows
-        """
-        query = """
-            SELECT *
-            FROM {table}
-            ORDER BY event_time DESC
-            LIMIT {limit}
-        """.format(table=self.table_name, limit=limit)
-
-        return self.client.query(query).result_rows
